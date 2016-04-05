@@ -12,27 +12,23 @@ volatile boolean firstBeat = true;        // used to seed rate array so we start
 volatile boolean secondBeat = false;      // used to seed rate array so we startup with reasonable BPM
 
 
+void interruptSetup(){     
+  // Initializes Timer2 to throw an interrupt every 2mS.
+  TCCR2A = 0x02;     // DISABLE PWM ON DIGITAL PINS 3 AND 11, AND GO INTO CTC MODE
+  TCCR2B = 0x06;     // DON'T FORCE COMPARE, 256 PRESCALER 
+  OCR2A = 0X7C;      // SET THE TOP OF THE COUNT TO 124 FOR 500Hz SAMPLE RATE
+  TIMSK2 = 0x02;     // ENABLE INTERRUPT ON MATCH BETWEEN TIMER2 AND OCR2A
+  sei();             // MAKE SURE GLOBAL INTERRUPTS ARE ENABLED      
+} 
 
- /*void interruptSetup(){     
-        // Initializes Timer2 to throw an interrupt every 2mS.
-        TCCR2A = 0x02;     // DISABLE PWM ON DIGITAL PINS 3 AND 11, AND GO INTO CTC MODE
-        TCCR2B = 0x06;     // DON'T FORCE COMPARE, 256 PRESCALER 
-        OCR2A = 0X7C;      // SET THE TOP OF THE COUNT TO 124 FOR 500Hz SAMPLE RATE
-        TIMSK2 = 0x02;     // ENABLE INTERRUPT ON MATCH BETWEEN TIMER2 AND OCR2A
-        sei();             // MAKE SURE GLOBAL INTERRUPTS ARE ENABLED      
-      } 
-  */
 
 // THIS IS THE TIMER 2 INTERRUPT SERVICE ROUTINE. 
 // Timer 2 makes sure that we take a reading every 2 miliseconds
-void trouble(){  // triggered when Timer2 counts to 124
-
-  //delay(200);
- // cli();                                      // disable interrupts while we do this
+ISR(TIMER2_COMPA_vect){                         // triggered when Timer2 counts to 124
+  cli();                                      // disable interrupts while we do this
   Signal = analogRead(pulsePin);              // read the Pulse Sensor 
   sampleCounter += 2;                         // keep track of the time in mS with this variable
-  int N = sampleCounter - lastBeatTime;// monitor the time since the last beat to avoid noise
-
+  int N = sampleCounter - lastBeatTime;       // monitor the time since the last beat to avoid noise
 
     //  find the peak and trough of the pulse wave
   if(Signal < thresh && N > (IBI/5)*3){       // avoid dichrotic noise by waiting 3/5 of last IBI
@@ -64,7 +60,7 @@ void trouble(){  // triggered when Timer2 counts to 124
       if(firstBeat){                         // if it's the first time we found a beat, if firstBeat == TRUE
         firstBeat = false;                   // clear firstBeat flag
         secondBeat = true;                   // set the second beat flag
-//        sei();                               // enable interrupts again
+        sei();                               // enable interrupts again
         return;                              // IBI value is unreliable so discard it
       }   
 
@@ -80,7 +76,7 @@ void trouble(){  // triggered when Timer2 counts to 124
       rate[9] = IBI;                          // add the latest IBI to the rate array
       runningTotal += rate[9];                // add the latest IBI to runningTotal
       runningTotal /= 10;                     // average the last 10 IBI values 
-      BPM = 60000/runningTotal/2;               // how many beats can fit into a minute? that's BPM!
+      BPM = 60000/runningTotal;               // how many beats can fit into a minute? that's BPM!
       QS = true;                              // set Quantified Self flag 
       // QS FLAG IS NOT CLEARED INSIDE THIS ISR
     }                       
@@ -104,7 +100,7 @@ void trouble(){  // triggered when Timer2 counts to 124
     secondBeat = false;                    // when we get the heartbeat back
   }
 
-//  sei();                                   // enable interrupts when youre done!
+  sei();                                   // enable interrupts when youre done!
 }// end isr
 
 
