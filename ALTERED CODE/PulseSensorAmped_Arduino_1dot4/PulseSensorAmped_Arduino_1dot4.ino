@@ -31,6 +31,10 @@ volatile boolean fixed = true;
 // Regards Serial OutPut  -- Set This Up to your needs
 static boolean serialVisual = false;   // Set to 'false' by Default.  Re-set to 'true' to see Arduino Serial Monitor ASCII Visual Pulse 
 
+unsigned long sampleTimer;
+int sampleTime = 2000;
+unsigned long serialTimer;
+int serialTime = 20;
 
 void setup(){
   //pinMode(6,INPUT);
@@ -46,20 +50,25 @@ void setup(){
 //externalReference(6); 
 //analogReference(EXTERNAL);  
 
+sampleTimer = serialTimer = millis();
+
 }
 
 
 //  Where the Magic Happens
 void loop(){
 
-    serialOutput() ;       
+    if(millis() - serialTimer > serialTime){
+      serialTimer = millis();
+      serialOutput();       
+    }
 
     if(fixed == true){
-      //fixed = false;
-      delay(2);
-      trouble();
-      //fixed == true;
-      };
+      if(micros() - sampleTimer > sampleTime){
+        sampleTimer = micros();
+        trouble();
+      }
+    }
       
   if (QS == true){     // A Heartbeat Was Found
                        // BPM and IBI have been Determined
@@ -71,7 +80,6 @@ void loop(){
   }
      
   ledFadeToBeat();                      // Makes the LED Fade Effect Happen 
-  delay(20);                             //  take a break
 }
 
 
